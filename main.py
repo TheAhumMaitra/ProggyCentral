@@ -46,7 +46,7 @@ async def hello(ctx):
 @bot.command()
 async def credit(ctx):
     await ctx.send(
-        "I'm created by Ahum Maitra. Repository url - https://github.com/TheAhumMaitra/ProggyCentral **Note : This project is licensed under the terms of GNU public license version 3")
+        f"{ctx.author.mention}I'm created by Ahum Maitra. Repository url - https://github.com/TheAhumMaitra/ProggyCentral **Note : This project is licensed under the terms of GNU public license version 3")
 
 
 @bot.command()
@@ -103,6 +103,25 @@ __**Fun bots roles (not ranked list) : **__
     embed = discord.Embed(title="Roles Info", description=f"{roles_info}")
     await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
+@bot.command()
+async def notice(ctx):
+    await ctx.send(f"{ctx.author.mention}Proggy Central is rendering on Render.com's free plan. Render.com doesn't allow to run the server for 24 x 7 xD. So, to use the bot. Please visit https://proggycentral.onrender.com/ . Thanks for your understanding :) . ")
+
+@bot.command(name="avatar", description="Get the avatar of a user xD")
+async def avatar(ctx, member: discord.Member = None):
+    if member is None:
+        member = ctx.author
+    embed = discord.Embed(title=f"{member.name}'s avatar", color=member.color)
+    embed.set_image(url=member.avatar.url)
+    await ctx.send(embed=embed)
+
+@bot.command(name="server", description="Get info about the server"):
+async def server(ctx):
+    embed = discord.Embed(title=f"{ctx.guild.name}'s info", color=discord.Color.blue())
+    embed.add_field(name="Owner", value=ctx.guild.owner)
+    embed.add_field(name="Member count", value=ctx.guild.member_count)
+    embed.add_field(name="Created at", value=ctx.guild.created_at)
+    embed.set_thumbnail(url=ctx.guild.icon.url)
 
 def start_bot():
     bot.run(token, log_handler=handler, log_level=logging.DEBUG)
