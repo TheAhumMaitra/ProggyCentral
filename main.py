@@ -86,4 +86,8 @@ __**Fun bots roles (not ranked list) : **__
     embed = discord.Embed(title="Roles Info", description=f"{roles_info}")
     await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
-bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+def start_bot():
+    bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+
+if __name__ == "__main__":
+    start_bot()
