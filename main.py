@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-present Ahum Maitra theahummaitra@gmail.com
+#
+# SPDX-License-Identifier: 	GPL-3.0-or-later
+
 import discord
 from discord.ext import commands
 import logging
@@ -5,18 +9,23 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-token = os.getenv("DISCORD_TOKEN")
+token = os.getenv("DISCORD_TOKEN") #get the main Discord bot connect token
 
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 intents = discord.Intents.default()
+
+# the intents we should access
 intents.message_content = True
 intents.members = True
 
+#prefix for running any command
 bot = commands.Bot(command_prefix="!", intents=intents)
+
 
 @bot.event
 async def on_ready():
     print(f'We are ready to go in, {bot.user.name}')
+
 
 @bot.event
 async def on_message(message):
@@ -28,9 +37,17 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+
 @bot.command()
 async def hello(ctx):
     await ctx.send(f"Hello {ctx.author.mention}! I'm Proggy Central. Just a bot.")
+
+
+@bot.command()
+async def credit(ctx):
+    await ctx.send(
+        "I'm created by Ahum Maitra. Repository url - https://github.com/TheAhumMaitra/ProggyCentral **Note : This project is licensed under the terms of GNU public license version 3")
+
 
 @bot.command()
 async def info_roles(ctx):
@@ -86,8 +103,10 @@ __**Fun bots roles (not ranked list) : **__
     embed = discord.Embed(title="Roles Info", description=f"{roles_info}")
     await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
+
 def start_bot():
     bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+
 
 if __name__ == "__main__":
     start_bot()
