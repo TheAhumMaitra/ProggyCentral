@@ -115,7 +115,7 @@ async def avatar(ctx, member: discord.Member = None):
     embed.set_image(url=member.avatar.url)
     await ctx.send(embed=embed)
 
-@bot.command(name="server", description="Get info about the server"):
+@bot.command(name="server", description="Get info about the server")
 async def server(ctx):
     embed = discord.Embed(title=f"{ctx.guild.name}'s info", color=discord.Color.blue())
     embed.add_field(name="Owner", value=ctx.guild.owner)
