@@ -7,6 +7,7 @@ from discord.ext import commands
 import logging
 import os
 from dotenv import load_dotenv
+from discord import app_commands
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN") #get the main Discord bot connect token
@@ -25,7 +26,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f'We are ready to go in, {bot.user.name}')
-
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(f"Failed to sync commands : \n\n {e}")
 
 @bot.event
 async def on_message(message):
@@ -122,6 +127,14 @@ async def server(ctx):
     embed.add_field(name="Member count", value=ctx.guild.member_count)
     embed.add_field(name="Created at", value=ctx.guild.created_at)
     embed.set_thumbnail(url=ctx.guild.icon.url)
+
+@bot.command()
+async def say(ctx, message: str):
+    await ctx.send(message)
+
+@bot.tree.command(name="help", description="Get all information about Proggy Central and list all commands")
+async def help_command(interaction: discord.Interaction):
+    await interaction.response.send_message(f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles` - This command will send all information about all roles \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page", ephemeral=True)
 
 def start_bot():
     bot.run(token, log_handler=handler, log_level=logging.DEBUG)
