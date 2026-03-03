@@ -197,12 +197,14 @@ Listen to and respect the volunteers that keep this server running.
 
 **React once you have understood with this emoji - ✅**
     '''
+    consequences=discord.Embed(title="Please remember", color=discord.Color.random())
+    consequences.set_image(url="https://imageio.forbes.com/blogs-images/scottmendelson/files/2019/03/FIN02_JW3_1Sht_Payoff_VF1-1200x675.jpg?format=jpg&height=600&width=1200&fit=bounds")
     rules_image=discord.Embed(color=discord.Color.random())
     rules_embed = discord.Embed(description=f"{rules}", color=discord.Color.random())
     rules_image.set_image(url="https://media.tenor.com/DEPkXx3uo_oAAAAe/rules-discord-rules.png")
     notice = discord.Embed(description="__**Note : **__  *In certain situations we can change/edit/add rule(s)*", color=discord.Color.random())
 
-    await ctx.send(embeds=[rules_image,rules_embed,notice], allowed_mentions=discord.AllowedMentions.none())
+    await ctx.send(embeds=[rules_image,rules_embed,notice,consequences], allowed_mentions=discord.AllowedMentions.none())
 
 @bot.tree.command(name="help", description="Get all information about Proggy Central and list all commands")
 async def help_command(interaction: discord.Interaction):
