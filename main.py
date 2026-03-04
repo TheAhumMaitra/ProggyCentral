@@ -10,27 +10,28 @@ from dotenv import load_dotenv
 from discord import app_commands
 
 load_dotenv()
-token = os.getenv("DISCORD_TOKEN") #get the main Discord bot connect token
+token = os.getenv("DISCORD_TOKEN")  # get the main Discord bot connect token
 
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
 intents = discord.Intents.default()
 
 # the intents we should access
 intents.message_content = True
 intents.members = True
 
-#prefix for running any command
+# prefix for running any command
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 @bot.event
 async def on_ready():
-    print(f'We are ready to go in, {bot.user.name}')
+    print(f"We are ready to go in, {bot.user.name}")
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
         print(f"Failed to sync commands : \n\n {e}")
+
 
 @bot.event
 async def on_message(message):
@@ -51,12 +52,13 @@ async def hello(ctx):
 @bot.command()
 async def credit(ctx):
     await ctx.send(
-        f"{ctx.author.mention}I'm created by Ahum Maitra. Repository url - https://github.com/TheAhumMaitra/ProggyCentral **Note : This project is licensed under the terms of GNU public license version 3")
+        f"{ctx.author.mention}I'm created by Ahum Maitra. Repository url - https://github.com/TheAhumMaitra/ProggyCentral **Note : This project is licensed under the terms of GNU public license version 3"
+    )
 
 
 @bot.command()
 async def info_roles(ctx):
-    roles_info = '''
+    roles_info = """
 __**Staff roles Info (ranked)**__
 
 <@&1467998946382319677> - ***Onwer of the server***
@@ -105,13 +107,19 @@ __**Fun bots roles (not ranked list) : **__
 <@&1466738717178728671> - A specified bot used for playing Uno
 <@&1457308571527024694> - A bot for getting Reddit stories 
 <@&1466737192465469516> - A fun bot used for counting
-    '''
-    embed = discord.Embed(title="Roles Info", description=f"{roles_info}", color=discord.Color.random())
+    """
+    embed = discord.Embed(
+        title="Roles Info", description=f"{roles_info}", color=discord.Color.random()
+    )
     await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+
 
 @bot.command()
 async def notice(ctx):
-    await ctx.send(f"{ctx.author.mention}Proggy Central is rendering on Render.com's free plan. Render.com doesn't allow to run the server for 24 x 7 xD. So, to use the bot. Please visit https://proggycentral.onrender.com/ . Thanks for your understanding :) . ")
+    await ctx.send(
+        f"{ctx.author.mention}Proggy Central is rendering on Render.com's free plan. Render.com doesn't allow to run the server for 24 x 7 xD. So, to use the bot. Please visit https://proggycentral.onrender.com/ . Thanks for your understanding :) . "
+    )
+
 
 @bot.command(name="avatar", description="Get the avatar of a user xD")
 async def avatar(ctx, member: discord.Member = None):
@@ -121,18 +129,37 @@ async def avatar(ctx, member: discord.Member = None):
     embed.set_image(url=member.avatar.url)
     await ctx.send(embed=embed)
 
+
 @bot.command()
 async def say(ctx, message: str):
     await ctx.send(message)
 
+
 @bot.command()
 async def jwquote(ctx):
-    quotes = ["Your membership to The Continental has been, by thine own hand, revoked.", "A man's ambition should never exceed his worth. You would do well to remember that, sir.", "A man has to look his best when it's time to get married. Or buried.", "You stabbed the devil in the back and forced him back into the life that he had just left.", "I can assure you that the stories you hear about this man, if nothing else, have been watered down.", "How you do anything is how you do everything.", "...Yeah", "Friendship means little when it’s convenient.", "Those who cling to death, live. Those who cling to life, die.", "Fools talk. Cowards are silent. But wise men listen.", "Exactly. Rules. Without them, we'd live with the animals.", "John Wick is a man of focus, commitment, sheer will... something you know very little about.", "Tell them all... Whoever comes, whoever it is... I'll k**l them. I'll k**l them all.", "People keep asking me if I'm back, and I haven't really had an answer. But now, yeah, I'm thinking I'm back!", ""]
-    await  ctx.send(f"{ctx.author.mention}\n**{choice(quotes)}**")
+    quotes = [
+        "Your membership to The Continental has been, by thine own hand, revoked.",
+        "A man's ambition should never exceed his worth. You would do well to remember that, sir.",
+        "A man has to look his best when it's time to get married. Or buried.",
+        "You stabbed the devil in the back and forced him back into the life that he had just left.",
+        "I can assure you that the stories you hear about this man, if nothing else, have been watered down.",
+        "How you do anything is how you do everything.",
+        "...Yeah",
+        "Friendship means little when it’s convenient.",
+        "Those who cling to death, live. Those who cling to life, die.",
+        "Fools talk. Cowards are silent. But wise men listen.",
+        "Exactly. Rules. Without them, we'd live with the animals.",
+        "John Wick is a man of focus, commitment, sheer will... something you know very little about.",
+        "Tell them all... Whoever comes, whoever it is... I'll k**l them. I'll k**l them all.",
+        "People keep asking me if I'm back, and I haven't really had an answer. But now, yeah, I'm thinking I'm back!",
+        "",
+    ]
+    await ctx.send(f"{ctx.author.mention}\n**{choice(quotes)}**")
+
 
 @bot.command()
 async def send_rules(ctx):
-    rules = '''
+    rules = """
     **Please follow all the rules listed below while participating in this server.**
 
 **1. ** Most text channels are English only
@@ -196,19 +223,92 @@ Listen to and respect the volunteers that keep this server running.
  "some people are toxic they have deep levels of insecurity and issues stemming from a troubled damaged childhood usually and they have patterns that are pretty negative and destructive they have a need to sabotage other people or to sabotage themselves and getting involved with someone like that can really ruin your life you get sucked into their dramas they kind of control the dynamic they feed off of controlling you by all of the emotions that they can stir up" 
 
 **React once you have understood with this emoji - ✅**
-    '''
-    consequences=discord.Embed(title="Please remember", color=discord.Color.random())
-    consequences.set_image(url="https://imageio.forbes.com/blogs-images/scottmendelson/files/2019/03/FIN02_JW3_1Sht_Payoff_VF1-1200x675.jpg?format=jpg&height=600&width=1200&fit=bounds")
-    rules_image=discord.Embed(color=discord.Color.random())
+    """
+    consequences = discord.Embed(title="Please remember", color=discord.Color.random())
+    consequences.set_image(
+        url="https://imageio.forbes.com/blogs-images/scottmendelson/files/2019/03/FIN02_JW3_1Sht_Payoff_VF1-1200x675.jpg?format=jpg&height=600&width=1200&fit=bounds"
+    )
+    rules_image = discord.Embed(color=discord.Color.random())
     rules_embed = discord.Embed(description=f"{rules}", color=discord.Color.random())
-    rules_image.set_image(url="https://media.tenor.com/DEPkXx3uo_oAAAAe/rules-discord-rules.png")
-    notice = discord.Embed(description="__**Note : **__  *In certain situations we can change/edit/add rule(s)*", color=discord.Color.random())
+    rules_image.set_image(
+        url="https://media.tenor.com/DEPkXx3uo_oAAAAe/rules-discord-rules.png"
+    )
+    notice = discord.Embed(
+        description="__**Note : **__  *In certain situations we can change/edit/add rule(s)*",
+        color=discord.Color.random(),
+    )
 
-    await ctx.send(embeds=[rules_image,rules_embed,notice,consequences], allowed_mentions=discord.AllowedMentions.none())
+    await ctx.send(
+        embeds=[rules_image, rules_embed, notice, consequences],
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
 
-@bot.tree.command(name="help", description="Get all information about Proggy Central and list all commands")
+
+@bot.tree.command(
+    name="help",
+    description="Get all information about Proggy Central and list all commands",
+)
 async def help_command(interaction: discord.Interaction):
-    await interaction.response.send_message(f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles` - This command will send all information about all roles \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page", ephemeral=True)
+    await interaction.response.send_message(
+        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles` - This command will send all information about all roles \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only)",
+        ephemeral=True,
+    )
+
+
+@bot.tree.command(name="dm", description="Send a direct message to a user (Admin only)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
+async def dm_user(
+    interaction: discord.Interaction,
+    username: discord.Member,
+    message: str,
+    reason: str = "No reason provided.",
+):
+    dm_embed = discord.Embed(
+        title="Message from Proggy Central",
+        description=message,
+        color=discord.Color.blurple(),
+    )
+    if reason.strip():
+        dm_embed.add_field(name="Reason", value=reason, inline=False)
+        dm_embed.set_footer(text="DO NOT REPLY THIS DM")
+    try:
+        await username.send(embed=dm_embed)
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            f"I couldn't DM {username.mention}. Their DMs may be disabled.",
+            ephemeral=True,
+        )
+        return
+    except discord.HTTPException:
+        await interaction.response.send_message(
+            "I couldn't send the DM because of a Discord API error. Please try again.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.response.send_message(
+        f"DM sent successfully to {username.mention}.",
+        ephemeral=True,
+    )
+
+
+@dm_user.error
+async def dm_user_error(
+    interaction: discord.Interaction, error: app_commands.AppCommandError
+):
+    if isinstance(error, app_commands.MissingPermissions):
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+        else:
+            await interaction.response.send_message(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+
 
 def start_bot():
     bot.run(token, log_handler=handler, log_level=logging.DEBUG)
