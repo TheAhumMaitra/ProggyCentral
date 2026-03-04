@@ -57,6 +57,7 @@ async def credit(ctx):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def info_roles(ctx):
     roles_info = """
 __**Staff roles Info (ranked)**__
@@ -75,12 +76,12 @@ __**Staff roles Info (ranked)**__
 
 __**Bots roles Info (ranked) : **__
 
-**Note** : This list is also a tier list xD 
+**Note** : This list is also a tier list xD
 
 __**Server main bots: **__
 
 <@&1475085493887566089> - Proggy's custom bot used for multiple purposes
-<@&1473605839796437025> - Main bot of this server 
+<@&1473605839796437025> - Main bot of this server
 <@&1476861100678058107> - Main utilities and fun activities, multipurpose bot (Chairman said once 'It's the most closet Bleed alternative bot')
 <@&1455582247695679637> - Senior bot of this server used for automod  (spam, bad words) , logging, other things.
 <@&1478070268118306940> - Used for leveling.
@@ -95,7 +96,7 @@ __**Member Roles : **__
 
 __**Additional bots roles: **__
 
-<@&1474360955600244801> - Used for embedded messages 
+<@&1474360955600244801> - Used for embedded messages
 <@282859044593598464> -  Used for utilities.
 <@&1474150218575646835> - Used for moderation
 
@@ -103,9 +104,9 @@ __**Fun bots roles (not ranked list) : **__
 
 <@&1474383694692221145> - Main bot used for playing games
 <@&1474761894970790060> - Used for sharing memes
-<@664508672713424926> - A specified bot used for playing Pokemon 
+<@664508672713424926> - A specified bot used for playing Pokemon
 <@&1466738717178728671> - A specified bot used for playing Uno
-<@&1457308571527024694> - A bot for getting Reddit stories 
+<@&1457308571527024694> - A bot for getting Reddit stories
 <@&1466737192465469516> - A fun bot used for counting
     """
     embed = discord.Embed(
@@ -158,6 +159,7 @@ async def jwquote(ctx):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def send_rules(ctx):
     rules = """
     **Please follow all the rules listed below while participating in this server.**
@@ -220,7 +222,7 @@ Listen to and respect the volunteers that keep this server running.
 
 **Here are some great words told by Robert Greene:**
 
- "some people are toxic they have deep levels of insecurity and issues stemming from a troubled damaged childhood usually and they have patterns that are pretty negative and destructive they have a need to sabotage other people or to sabotage themselves and getting involved with someone like that can really ruin your life you get sucked into their dramas they kind of control the dynamic they feed off of controlling you by all of the emotions that they can stir up" 
+ "some people are toxic they have deep levels of insecurity and issues stemming from a troubled damaged childhood usually and they have patterns that are pretty negative and destructive they have a need to sabotage other people or to sabotage themselves and getting involved with someone like that can really ruin your life you get sucked into their dramas they kind of control the dynamic they feed off of controlling you by all of the emotions that they can stir up"
 
 **React once you have understood with this emoji - ✅**
     """
@@ -244,13 +246,25 @@ Listen to and respect the volunteers that keep this server running.
     )
 
 
+@info_roles.error
+async def info_roles_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You need administrator permission to use `!info_roles`.")
+
+
+@send_rules.error
+async def send_rules_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You need administrator permission to use `!send_rules`.")
+
+
 @bot.tree.command(
     name="help",
     description="Get all information about Proggy Central and list all commands",
 )
 async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(
-        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles` - This command will send all information about all roles \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only)",
+        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles (admin only)` - This command will send all information about all roles \n `!send_rules (admin only)` - Send current embed rules \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only) \n `/lock` - Lock a channel for a specified role (Admin only) \n `/unlock` - Unlock a channel for specified role (Admin only) \n `/lockdown` - Lock all visible channels for specified role (Admin only) \n `/remove_lockdown` - Remove lockdown for `Verfied` role (Admin only)",
         ephemeral=True,
     )
 
@@ -295,6 +309,351 @@ async def dm_user(
 
 @dm_user.error
 async def dm_user_error(
+    interaction: discord.Interaction, error: app_commands.AppCommandError
+):
+    if isinstance(error, app_commands.MissingPermissions):
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+        else:
+            await interaction.response.send_message(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+
+
+DEFAULT_MEMBER_ROLES = ("Member", "Verified")
+
+
+def resolve_verified_role(
+    guild: discord.Guild, role_option: discord.Role | None
+) -> discord.Role | None:
+    if role_option is not None:
+        return role_option
+
+    for role_name in DEFAULT_MEMBER_ROLES:
+        matched_role = discord.utils.get(guild.roles, name=role_name)
+        if matched_role is not None:
+            return matched_role
+
+    return None
+
+
+@bot.tree.command(
+    name="lock",
+    description="Lock a channel for a verified role (disable messages and reactions).",
+)
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(
+    channel="Text channel to lock (defaults to current channel).",
+    role="Role to lock (defaults to Verified/Verfied).",
+)
+async def lock_channel(
+    interaction: discord.Interaction,
+    channel: discord.TextChannel | None = None,
+    role: discord.Role | None = None,
+):
+    target_channel = channel or interaction.channel
+    if not isinstance(target_channel, discord.TextChannel):
+        await interaction.response.send_message(
+            "This command can only lock text channels.",
+            ephemeral=True,
+        )
+        return
+
+    if interaction.guild is None:
+        await interaction.response.send_message(
+            "This command can only be used in a server.",
+            ephemeral=True,
+        )
+        return
+
+    verified_role = resolve_verified_role(interaction.guild, role)
+    if verified_role is None:
+        await interaction.response.send_message(
+            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
+            ephemeral=True,
+        )
+        return
+
+    overwrite = target_channel.overwrites_for(verified_role)
+    overwrite.send_messages = False
+    overwrite.add_reactions = False
+
+    try:
+        await target_channel.set_permissions(
+            verified_role,
+            overwrite=overwrite,
+            reason=f"Locked by {interaction.user} via /lock command",
+        )
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "I don't have permission to edit channel permissions.",
+            ephemeral=True,
+        )
+        return
+    except discord.HTTPException:
+        await interaction.response.send_message(
+            "I couldn't update the channel permissions due to a Discord API error.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.response.send_message(
+        f"Locked {target_channel.mention} for {verified_role.mention}. They can no longer send messages or react.",
+        ephemeral=True,
+    )
+
+
+@lock_channel.error
+async def lock_channel_error(
+    interaction: discord.Interaction, error: app_commands.AppCommandError
+):
+    if isinstance(error, app_commands.MissingPermissions):
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+        else:
+            await interaction.response.send_message(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+
+
+@bot.tree.command(
+    name="unlock",
+    description="Unlock a channel for a verified role (enable messages and reactions).",
+)
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(
+    channel="Text channel to unlock (defaults to current channel).",
+    role="Role to unlock (defaults to Verified/Verfied).",
+)
+async def unlock_channel(
+    interaction: discord.Interaction,
+    channel: discord.TextChannel | None = None,
+    role: discord.Role | None = None,
+):
+    target_channel = channel or interaction.channel
+    if not isinstance(target_channel, discord.TextChannel):
+        await interaction.response.send_message(
+            "This command can only unlock text channels.",
+            ephemeral=True,
+        )
+        return
+
+    if interaction.guild is None:
+        await interaction.response.send_message(
+            "This command can only be used in a server.",
+            ephemeral=True,
+        )
+        return
+
+    verified_role = resolve_verified_role(interaction.guild, role)
+    if verified_role is None:
+        await interaction.response.send_message(
+            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
+            ephemeral=True,
+        )
+        return
+
+    overwrite = target_channel.overwrites_for(verified_role)
+    overwrite.send_messages = None
+    overwrite.add_reactions = None
+
+    try:
+        if overwrite.is_empty():
+            await target_channel.set_permissions(
+                verified_role,
+                overwrite=None,
+                reason=f"Unlocked by {interaction.user} via /unlock command",
+            )
+        else:
+            await target_channel.set_permissions(
+                verified_role,
+                overwrite=overwrite,
+                reason=f"Unlocked by {interaction.user} via /unlock command",
+            )
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "I don't have permission to edit channel permissions.",
+            ephemeral=True,
+        )
+        return
+    except discord.HTTPException:
+        await interaction.response.send_message(
+            "I couldn't update the channel permissions due to a Discord API error.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.response.send_message(
+        f"Unlocked {target_channel.mention} for {verified_role.mention}.",
+        ephemeral=True,
+    )
+
+
+@unlock_channel.error
+async def unlock_channel_error(
+    interaction: discord.Interaction, error: app_commands.AppCommandError
+):
+    if isinstance(error, app_commands.MissingPermissions):
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+        else:
+            await interaction.response.send_message(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+
+
+@bot.tree.command(
+    name="lockdown",
+    description="Lock all publicly visible text channels in this server.",
+)
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(
+    role="Role to lock down (defaults to Verified/Verfied).",
+)
+async def lockdown(interaction: discord.Interaction, role: discord.Role | None = None):
+    if interaction.guild is None:
+        await interaction.response.send_message(
+            "This command can only be used in a server.",
+            ephemeral=True,
+        )
+        return
+
+    verified_role = resolve_verified_role(interaction.guild, role)
+    if verified_role is None:
+        await interaction.response.send_message(
+            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
+            ephemeral=True,
+        )
+        return
+
+    locked_channels = 0
+    failed_channels = 0
+
+    for channel in interaction.guild.channels:
+        if not isinstance(channel, discord.TextChannel):
+            continue
+
+        if not channel.permissions_for(verified_role).view_channel:
+            continue
+
+        overwrite = channel.overwrites_for(verified_role)
+        overwrite.send_messages = False
+        overwrite.add_reactions = False
+
+        try:
+            await channel.set_permissions(
+                verified_role,
+                overwrite=overwrite,
+                reason=f"Server lockdown by {interaction.user} via /lockdown command",
+            )
+            locked_channels += 1
+        except (discord.Forbidden, discord.HTTPException):
+            failed_channels += 1
+
+    await interaction.response.send_message(
+        f"Lockdown completed for {verified_role.mention}. Locked {locked_channels} visible text channel(s). Failed: {failed_channels}.",
+        ephemeral=True,
+    )
+
+
+@lockdown.error
+async def lockdown_error(
+    interaction: discord.Interaction, error: app_commands.AppCommandError
+):
+    if isinstance(error, app_commands.MissingPermissions):
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+        else:
+            await interaction.response.send_message(
+                "You need administrator permission to use this command.",
+                ephemeral=True,
+            )
+
+
+@bot.tree.command(
+    name="remove_lockdown",
+    description="Remove lockdown from all publicly visible text channels in this server.",
+)
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(
+    role="Role to unlock from lockdown (defaults to Verified/Verfied).",
+)
+async def remove_lockdown(
+    interaction: discord.Interaction, role: discord.Role | None = None
+):
+    if interaction.guild is None:
+        await interaction.response.send_message(
+            "This command can only be used in a server.",
+            ephemeral=True,
+        )
+        return
+
+    verified_role = resolve_verified_role(interaction.guild, role)
+    if verified_role is None:
+        await interaction.response.send_message(
+            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
+            ephemeral=True,
+        )
+        return
+
+    unlocked_channels = 0
+    failed_channels = 0
+
+    for channel in interaction.guild.channels:
+        if not isinstance(channel, discord.TextChannel):
+            continue
+
+        if not channel.permissions_for(verified_role).view_channel:
+            continue
+
+        overwrite = channel.overwrites_for(verified_role)
+        overwrite.send_messages = None
+        overwrite.add_reactions = None
+
+        try:
+            if overwrite.is_empty():
+                await channel.set_permissions(
+                    verified_role,
+                    overwrite=None,
+                    reason=f"Lockdown removed by {interaction.user} via /remove_lockdown command",
+                )
+            else:
+                await channel.set_permissions(
+                    verified_role,
+                    overwrite=overwrite,
+                    reason=f"Lockdown removed by {interaction.user} via /remove_lockdown command",
+                )
+            unlocked_channels += 1
+        except (discord.Forbidden, discord.HTTPException):
+            failed_channels += 1
+
+    await interaction.response.send_message(
+        f"Remove lockdown completed for {verified_role.mention}. Updated {unlocked_channels} visible text channel(s). Failed: {failed_channels}.",
+        ephemeral=True,
+    )
+
+
+@remove_lockdown.error
+async def remove_lockdown_error(
     interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
     if isinstance(error, app_commands.MissingPermissions):
