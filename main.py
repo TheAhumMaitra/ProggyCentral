@@ -11,6 +11,7 @@ from discord import app_commands
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")  # get the main Discord bot connect token
+LOG_CHANNEL_ID = 1455476133825876103
 
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
 intents = discord.Intents.default()
@@ -31,6 +32,72 @@ async def on_ready():
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
         print(f"Failed to sync commands : \n\n {e}")
+
+
+async def log_command(ctx_or_interaction, command_name, args_str):
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    if not log_channel:
+        try:
+            log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
+        except:
+            return
+
+    user = (
+        ctx_or_interaction.author
+        if hasattr(ctx_or_interaction, "author")
+        else ctx_or_interaction.user
+    )
+    guild = ctx_or_interaction.guild
+    channel = (
+        ctx_or_interaction.channel
+        if hasattr(ctx_or_interaction, "channel")
+        else ctx_or_interaction.channel
+    )
+
+    embed = discord.Embed(
+        title="Command Log",
+        color=discord.Color.blue(),
+        timestamp=discord.utils.utcnow(),
+    )
+    embed.add_field(name="Command", value=f"/{command_name}" if hasattr(ctx_or_interaction, "user") else f"!{command_name}", inline=True)
+    embed.add_field(name="User", value=f"{user} ({user.id})", inline=True)
+    embed.add_field(
+        name="Location",
+        value=f"#{channel.name} ({channel.id}) in {guild.name}" if guild else "DM",
+        inline=False,
+    )
+    if args_str:
+        embed.add_field(name="Arguments", value=args_str[:1024], inline=False)
+
+    try:
+        await log_channel.send(embed=embed)
+    except:
+        pass
+
+
+@bot.before_invoke
+async def before_any_command(ctx):
+    args_str = " ".join(map(str, ctx.args[2:])) if len(ctx.args) > 2 else ""
+    if ctx.kwargs:
+        args_str += " " + " ".join([f"{k}={v}" for k, v in ctx.kwargs.items()])
+    await log_command(ctx, ctx.command.name, args_str.strip())
+
+
+@bot.tree.interaction_check
+async def log_interaction(interaction: discord.Interaction):
+    if interaction.type == discord.InteractionType.application_command:
+        command = interaction.command
+        if command:
+            # Extract arguments from interaction
+            args = []
+            options = interaction.data.get("options", [])
+            for option in options:
+                # Basic option logging (name: value)
+                args.append(f"{option['name']}: {option['value']}")
+            
+            args_str = ", ".join(args)
+            await log_command(interaction, command.name, args_str)
+    return True
 
 
 @bot.event
@@ -387,7 +454,7 @@ async def lock_channel(
     embed.add_field(name="Status", value="Successfully Locked ✅", inline=False)
     embed.set_footer(text=f"Action by {interaction.user}")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed)
 
 
 @lock_channel.error
@@ -470,7 +537,7 @@ async def unlock_channel(
     embed.add_field(name="Status", value="Successfully Unlocked ✅", inline=False)
     embed.set_footer(text=f"Action by {interaction.user}")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed)
 
 
 @unlock_channel.error
@@ -511,6 +578,10 @@ async def lockdown(
             ephemeral=True,
         )
         return
+
+    await interaction.response.send_message(
+        "The request to do that had processed"
+    )
 
     locked_channels = 0
     failed_channels = 0
@@ -554,10 +625,7 @@ async def lockdown(
         )
     embed.set_footer(text=f"Action by {interaction.user}")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@lockdown.error
+    await interaction.followup.send(embed=embed)
 async def lockdown_error(
     interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
@@ -595,6 +663,10 @@ async def remove_lockdown(
             ephemeral=True,
         )
         return
+
+    await interaction.response.send_message(
+        "The request to do that had processed"
+    )
 
     unlocked_channels = 0
     failed_channels = 0
@@ -640,10 +712,7 @@ async def remove_lockdown(
         )
     embed.set_footer(text=f"Action by {interaction.user}")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@remove_lockdown.error
+    await interaction.followup.send(embed=embed)
 async def remove_lockdown_error(
     interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
