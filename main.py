@@ -264,7 +264,7 @@ async def send_rules_error(ctx, error):
 )
 async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(
-        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles (admin only)` - This command will send all information about all roles \n `!send_rules (admin only)` - Send current embed rules \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only) \n `/lock` - Lock a channel for a specified role (Admin only) \n `/unlock` - Unlock a channel for specified role (Admin only) \n `/lockdown` - Lock all visible channels for specified role (Admin only) \n `/remove_lockdown` - Remove lockdown for `Verfied` role (Admin only)",
+        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles (admin only)` - This command will send all information about all roles \n `!send_rules (admin only)` - Send current embed rules \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only) \n `/lock` - Lock a channel for a specified role (Admin only) \n `/unlock` - Unlock a channel for a specified role (Admin only) \n `/lockdown` - Lock all visible channels for a specified role (Admin only) \n `/remove_lockdown` - Remove lockdown for a specified role (Admin only)",
         ephemeral=True,
     )
 
@@ -324,37 +324,20 @@ async def dm_user_error(
             )
 
 
-DEFAULT_MEMBER_ROLES = ("Member", "Verified")
-
-
-def resolve_verified_role(
-    guild: discord.Guild, role_option: discord.Role | None
-) -> discord.Role | None:
-    if role_option is not None:
-        return role_option
-
-    for role_name in DEFAULT_MEMBER_ROLES:
-        matched_role = discord.utils.get(guild.roles, name=role_name)
-        if matched_role is not None:
-            return matched_role
-
-    return None
-
-
 @bot.tree.command(
     name="lock",
-    description="Lock a channel for a verified role (disable messages and reactions).",
+    description="Lock a channel for a role (disable messages and reactions).",
 )
 @app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
     channel="Text channel to lock (defaults to current channel).",
-    role="Role to lock (defaults to Verified/Verfied).",
+    role="Role to lock.",
 )
 async def lock_channel(
     interaction: discord.Interaction,
+    role: discord.Role,
     channel: discord.TextChannel | None = None,
-    role: discord.Role | None = None,
 ):
     target_channel = channel or interaction.channel
     if not isinstance(target_channel, discord.TextChannel):
@@ -371,21 +354,13 @@ async def lock_channel(
         )
         return
 
-    verified_role = resolve_verified_role(interaction.guild, role)
-    if verified_role is None:
-        await interaction.response.send_message(
-            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
-            ephemeral=True,
-        )
-        return
-
-    overwrite = target_channel.overwrites_for(verified_role)
+    overwrite = target_channel.overwrites_for(role)
     overwrite.send_messages = False
     overwrite.add_reactions = False
 
     try:
         await target_channel.set_permissions(
-            verified_role,
+            role,
             overwrite=overwrite,
             reason=f"Locked by {interaction.user} via /lock command",
         )
@@ -402,10 +377,17 @@ async def lock_channel(
         )
         return
 
-    await interaction.response.send_message(
-        f"Locked {target_channel.mention} for {verified_role.mention}. They can no longer send messages or react.",
-        ephemeral=True,
+    embed = discord.Embed(
+        title="Channel Locked",
+        description=f"Locked {target_channel.mention} for {role.mention}.",
+        color=discord.Color.red(),
     )
+    embed.add_field(name="Target Channel", value=target_channel.name, inline=True)
+    embed.add_field(name="Target Role", value=role.name, inline=True)
+    embed.add_field(name="Status", value="Successfully Locked ✅", inline=False)
+    embed.set_footer(text=f"Action by {interaction.user}")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @lock_channel.error
@@ -427,18 +409,18 @@ async def lock_channel_error(
 
 @bot.tree.command(
     name="unlock",
-    description="Unlock a channel for a verified role (enable messages and reactions).",
+    description="Unlock a channel for a role (restore inherited send/react permissions).",
 )
 @app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
     channel="Text channel to unlock (defaults to current channel).",
-    role="Role to unlock (defaults to Verified/Verfied).",
+    role="Role to unlock.",
 )
 async def unlock_channel(
     interaction: discord.Interaction,
+    role: discord.Role,
     channel: discord.TextChannel | None = None,
-    role: discord.Role | None = None,
 ):
     target_channel = channel or interaction.channel
     if not isinstance(target_channel, discord.TextChannel):
@@ -455,31 +437,16 @@ async def unlock_channel(
         )
         return
 
-    verified_role = resolve_verified_role(interaction.guild, role)
-    if verified_role is None:
-        await interaction.response.send_message(
-            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
-            ephemeral=True,
-        )
-        return
-
-    overwrite = target_channel.overwrites_for(verified_role)
-    overwrite.send_messages = None
-    overwrite.add_reactions = None
+    overwrite = target_channel.overwrites_for(role)
+    overwrite.send_messages = True
+    overwrite.add_reactions = True
 
     try:
-        if overwrite.is_empty():
-            await target_channel.set_permissions(
-                verified_role,
-                overwrite=None,
-                reason=f"Unlocked by {interaction.user} via /unlock command",
-            )
-        else:
-            await target_channel.set_permissions(
-                verified_role,
-                overwrite=overwrite,
-                reason=f"Unlocked by {interaction.user} via /unlock command",
-            )
+        await target_channel.set_permissions(
+            role,
+            overwrite=overwrite,
+            reason=f"Unlocked by {interaction.user} via /unlock command",
+        )
     except discord.Forbidden:
         await interaction.response.send_message(
             "I don't have permission to edit channel permissions.",
@@ -493,10 +460,17 @@ async def unlock_channel(
         )
         return
 
-    await interaction.response.send_message(
-        f"Unlocked {target_channel.mention} for {verified_role.mention}.",
-        ephemeral=True,
+    embed = discord.Embed(
+        title="Channel Unlocked",
+        description=f"Unlocked {target_channel.mention} for {role.mention}.",
+        color=discord.Color.green(),
     )
+    embed.add_field(name="Target Channel", value=target_channel.name, inline=True)
+    embed.add_field(name="Target Role", value=role.name, inline=True)
+    embed.add_field(name="Status", value="Successfully Unlocked ✅", inline=False)
+    embed.set_footer(text=f"Action by {interaction.user}")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @unlock_channel.error
@@ -523,9 +497,14 @@ async def unlock_channel_error(
 @app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
-    role="Role to lock down (defaults to Verified/Verfied).",
+    role="Role to lock down.",
+    dont_want_channel="A channel that shouldn't be touched.",
 )
-async def lockdown(interaction: discord.Interaction, role: discord.Role | None = None):
+async def lockdown(
+    interaction: discord.Interaction,
+    role: discord.Role,
+    dont_want_channel: discord.TextChannel | None = None,
+):
     if interaction.guild is None:
         await interaction.response.send_message(
             "This command can only be used in a server.",
@@ -533,31 +512,28 @@ async def lockdown(interaction: discord.Interaction, role: discord.Role | None =
         )
         return
 
-    verified_role = resolve_verified_role(interaction.guild, role)
-    if verified_role is None:
-        await interaction.response.send_message(
-            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
-            ephemeral=True,
-        )
-        return
-
     locked_channels = 0
     failed_channels = 0
+    skipped_channels = 0
 
     for channel in interaction.guild.channels:
         if not isinstance(channel, discord.TextChannel):
             continue
 
-        if not channel.permissions_for(verified_role).view_channel:
+        if dont_want_channel and channel.id == dont_want_channel.id:
+            skipped_channels += 1
             continue
 
-        overwrite = channel.overwrites_for(verified_role)
+        if not channel.permissions_for(role).view_channel:
+            continue
+
+        overwrite = channel.overwrites_for(role)
         overwrite.send_messages = False
         overwrite.add_reactions = False
 
         try:
             await channel.set_permissions(
-                verified_role,
+                role,
                 overwrite=overwrite,
                 reason=f"Server lockdown by {interaction.user} via /lockdown command",
             )
@@ -565,10 +541,20 @@ async def lockdown(interaction: discord.Interaction, role: discord.Role | None =
         except (discord.Forbidden, discord.HTTPException):
             failed_channels += 1
 
-    await interaction.response.send_message(
-        f"Lockdown completed for {verified_role.mention}. Locked {locked_channels} visible text channel(s). Failed: {failed_channels}.",
-        ephemeral=True,
+    embed = discord.Embed(
+        title="Server Lockdown Report",
+        description=f"Lockdown completed for {role.mention}.",
+        color=discord.Color.red(),
     )
+    embed.add_field(name="Locked Channels", value=str(locked_channels), inline=True)
+    embed.add_field(name="Failed Channels", value=str(failed_channels), inline=True)
+    if dont_want_channel:
+        embed.add_field(
+            name="Skipped Channels", value=str(skipped_channels), inline=True
+        )
+    embed.set_footer(text=f"Action by {interaction.user}")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @lockdown.error
@@ -595,10 +581,13 @@ async def lockdown_error(
 @app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
-    role="Role to unlock from lockdown (defaults to Verified/Verfied).",
+    role="Role to unlock from lockdown.",
+    dont_want_channel="A channel that shouldn't be touched.",
 )
 async def remove_lockdown(
-    interaction: discord.Interaction, role: discord.Role | None = None
+    interaction: discord.Interaction,
+    role: discord.Role,
+    dont_want_channel: discord.TextChannel | None = None,
 ):
     if interaction.guild is None:
         await interaction.response.send_message(
@@ -607,49 +596,51 @@ async def remove_lockdown(
         )
         return
 
-    verified_role = resolve_verified_role(interaction.guild, role)
-    if verified_role is None:
-        await interaction.response.send_message(
-            "I couldn't find a default verified role (`Verified` or `Verfied`). Please choose a role with the `role` option.",
-            ephemeral=True,
-        )
-        return
-
     unlocked_channels = 0
     failed_channels = 0
+    skipped_channels = 0
 
     for channel in interaction.guild.channels:
         if not isinstance(channel, discord.TextChannel):
             continue
 
-        if not channel.permissions_for(verified_role).view_channel:
+        if dont_want_channel and channel.id == dont_want_channel.id:
+            skipped_channels += 1
             continue
 
-        overwrite = channel.overwrites_for(verified_role)
-        overwrite.send_messages = None
-        overwrite.add_reactions = None
+        if not channel.permissions_for(role).view_channel:
+            continue
+
+        overwrite = channel.overwrites_for(role)
+        overwrite.send_messages = True
+        overwrite.add_reactions = True
 
         try:
-            if overwrite.is_empty():
-                await channel.set_permissions(
-                    verified_role,
-                    overwrite=None,
-                    reason=f"Lockdown removed by {interaction.user} via /remove_lockdown command",
-                )
-            else:
-                await channel.set_permissions(
-                    verified_role,
-                    overwrite=overwrite,
-                    reason=f"Lockdown removed by {interaction.user} via /remove_lockdown command",
-                )
+            await channel.set_permissions(
+                role,
+                overwrite=overwrite,
+                reason=f"Lockdown removed by {interaction.user} via /remove_lockdown command",
+            )
             unlocked_channels += 1
         except (discord.Forbidden, discord.HTTPException):
             failed_channels += 1
 
-    await interaction.response.send_message(
-        f"Remove lockdown completed for {verified_role.mention}. Updated {unlocked_channels} visible text channel(s). Failed: {failed_channels}.",
-        ephemeral=True,
+    embed = discord.Embed(
+        title="Remove Lockdown Report",
+        description=f"Remove lockdown completed for {role.mention}.",
+        color=discord.Color.green(),
     )
+    embed.add_field(
+        name="Unlocked Channels", value=str(unlocked_channels), inline=True
+    )
+    embed.add_field(name="Failed Channels", value=str(failed_channels), inline=True)
+    if dont_want_channel:
+        embed.add_field(
+            name="Skipped Channels", value=str(skipped_channels), inline=True
+        )
+    embed.set_footer(text=f"Action by {interaction.user}")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @remove_lockdown.error
