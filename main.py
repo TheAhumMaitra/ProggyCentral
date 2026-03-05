@@ -6,12 +6,12 @@ import discord
 from discord.ext import commands
 import logging
 import os
+import json
 from dotenv import load_dotenv
 from discord import app_commands
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")  # get the main Discord bot connect token
-LOG_CHANNEL_ID = 1455476133825876103
 
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
 intents = discord.Intents.default()
@@ -31,73 +31,7 @@ async def on_ready():
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
-        print(f"Failed to sync commands : \n\n {e}")
-
-
-async def log_command(ctx_or_interaction, command_name, args_str):
-    log_channel = bot.get_channel(LOG_CHANNEL_ID)
-    if not log_channel:
-        try:
-            log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
-        except:
-            return
-
-    user = (
-        ctx_or_interaction.author
-        if hasattr(ctx_or_interaction, "author")
-        else ctx_or_interaction.user
-    )
-    guild = ctx_or_interaction.guild
-    channel = (
-        ctx_or_interaction.channel
-        if hasattr(ctx_or_interaction, "channel")
-        else ctx_or_interaction.channel
-    )
-
-    embed = discord.Embed(
-        title="Command Log",
-        color=discord.Color.blue(),
-        timestamp=discord.utils.utcnow(),
-    )
-    embed.add_field(name="Command", value=f"/{command_name}" if hasattr(ctx_or_interaction, "user") else f"!{command_name}", inline=True)
-    embed.add_field(name="User", value=f"{user} ({user.id})", inline=True)
-    embed.add_field(
-        name="Location",
-        value=f"#{channel.name} ({channel.id}) in {guild.name}" if guild else "DM",
-        inline=False,
-    )
-    if args_str:
-        embed.add_field(name="Arguments", value=args_str[:1024], inline=False)
-
-    try:
-        await log_channel.send(embed=embed)
-    except:
-        pass
-
-
-@bot.before_invoke
-async def before_any_command(ctx):
-    args_str = " ".join(map(str, ctx.args[2:])) if len(ctx.args) > 2 else ""
-    if ctx.kwargs:
-        args_str += " " + " ".join([f"{k}={v}" for k, v in ctx.kwargs.items()])
-    await log_command(ctx, ctx.command.name, args_str.strip())
-
-
-@bot.tree.interaction_check
-async def log_interaction(interaction: discord.Interaction):
-    if interaction.type == discord.InteractionType.application_command:
-        command = interaction.command
-        if command:
-            # Extract arguments from interaction
-            args = []
-            options = interaction.data.get("options", [])
-            for option in options:
-                # Basic option logging (name: value)
-                args.append(f"{option['name']}: {option['value']}")
-            
-            args_str = ", ".join(args)
-            await log_command(interaction, command.name, args_str)
-    return True
+        print(f"Failed to sync commands : \n {e}")
 
 
 @bot.event
@@ -226,6 +160,27 @@ async def jwquote(ctx):
 
 
 @bot.command()
+async def caseohmeme(ctx):
+    memes = [
+        "https://tenor.com/view/caseoh-caseoh-jumpscare-caseoh-scared-caseoh-funny-caseoh-startled-gif-14941643579400624663",
+        "https://tenor.com/en-GB/view/caseoh-lc85-gif-8480620273255792888",
+        "https://tenor.com/en-GB/view/caseoh-case-oh-case-oh-mad-gif-2552267065185793066",
+        "https://tenor.com/en-GB/view/hello-hello-chat-chat-caseoh-roll-up-gif-7804955315425908227",
+        "https://tenor.com/en-GB/view/roblox-zzb-zoomzoombang-dti-dress-to-impress-gif-10867959963076828549",
+        "https://tenor.com/en-GB/view/are-you-serious-caseoh-case-seriously-caseoh-are-you-serious-gif-2357468548252690058",
+        "https://tenor.com/en-GB/view/caseoh-case-oh-case-oh-don't-get-me-started-gif-12184566123679400202",
+        "https://tenor.com/en-GB/view/kitty-caseoh-caseoh-kitty-gif-13291596671407784466",
+        "https://tenor.com/en-GB/view/ban-banned-caseoh-case-oh-twitch-gif-13568417804011437354",
+        "https://tenor.com/en-GB/view/caseoh-dance-vibes-gif-10898420548073589066",
+        "https://tenor.com/en-GB/view/case-caseoh-your-banned-you'e-banned-get-out-gif-7698576230662898937",
+        "https://tenor.com/en-GB/view/caseoh-caseoh-clapping-caseoh-scream-gif-5495829595775167881",
+        "https://tenor.com/en-GB/view/ive-seen-enough-goodnight-good-night-good-night-chat-chat-gif-8388805182750736134"
+
+    ]
+    await ctx.send(f"{ctx.author.mention}\n{choice(memes)}")
+
+
+@bot.command()
 @commands.has_permissions(administrator=True)
 async def send_rules(ctx):
     rules = """
@@ -331,7 +286,7 @@ async def send_rules_error(ctx, error):
 )
 async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(
-        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles (admin only)` - This command will send all information about all roles \n `!send_rules (admin only)` - Send current embed rules \n `!avatar [`member_name`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only) \n `/lock` - Lock a channel for a specified role (Admin only) \n `/unlock` - Unlock a channel for a specified role (Admin only) \n `/lockdown` - Lock all visible channels for a specified role (Admin only) \n `/remove_lockdown` - Remove lockdown for a specified role (Admin only)",
+        f"{interaction.user.mention} \n **Here is the list of all commands :** \n\n __**Prefix commands**__ \n `!info_roles` - This command will send all information about all roles (admin only) \n `!send_rules` - Send current embed rules (admin only) \n `!avatar [`member_username`] ` - Get the avatar of a user \n\n __**Slash commands : **__ \n `/help` - Shows this help page \n `/dm` - Send a DM to a user (Admin only) \n `/lock [Supported options : `role` - Role to lock, `channel` - Channel to lock, if not entered then it will lock the current channel]` - Lock a channel for a specified role (Admin only) \n `/unlock [Supported options : `role` - Role to lock, `channel` - Channel to unlock, if not entered then it will unlock the current channel]` - Unlock a channel for a specified role (Admin only) \n `/lockdown [Supported options : `role` - Role to lockdown, `dont_want_channel` - Channels to exclude the lockdown] `` - Lock all visible channels for a specified role (Admin only) \n `/remove_lockdown [Supported options : `role` - Remove the lockdown from this role, `dont_want_channels` - Channels that shouldn't be unlocked for the roles] ` - Remove lockdown for a specified role (Admin only) \n\n **Note : ** `lockdown`, `lock`, `remove_lockdown`, `unlock` commands are just disable or enable the send messages / reactions permissions for the specified role",
         ephemeral=True,
     )
 
@@ -340,10 +295,10 @@ async def help_command(interaction: discord.Interaction):
 @app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(administrator=True)
 async def dm_user(
-    interaction: discord.Interaction,
-    username: discord.Member,
-    message: str,
-    reason: str = "No reason provided.",
+        interaction: discord.Interaction,
+        username: discord.Member,
+        message: str,
+        reason: str = "No reason provided.",
 ):
     dm_embed = discord.Embed(
         title="Message from Proggy Central",
@@ -358,36 +313,31 @@ async def dm_user(
     except discord.Forbidden:
         await interaction.response.send_message(
             f"I couldn't DM {username.mention}. Their DMs may be disabled.",
-            ephemeral=True,
         )
         return
     except discord.HTTPException:
         await interaction.response.send_message(
             "I couldn't send the DM because of a Discord API error. Please try again.",
-            ephemeral=True,
         )
         return
 
     await interaction.response.send_message(
         f"DM sent successfully to {username.mention}.",
-        ephemeral=True,
     )
 
 
 @dm_user.error
 async def dm_user_error(
-    interaction: discord.Interaction, error: app_commands.AppCommandError
+        interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
     if isinstance(error, app_commands.MissingPermissions):
         if interaction.response.is_done():
             await interaction.followup.send(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
 
 
@@ -402,22 +352,20 @@ async def dm_user_error(
     role="Role to lock.",
 )
 async def lock_channel(
-    interaction: discord.Interaction,
-    role: discord.Role,
-    channel: discord.TextChannel | None = None,
+        interaction: discord.Interaction,
+        role: discord.Role,
+        channel: discord.TextChannel | None = None,
 ):
     target_channel = channel or interaction.channel
     if not isinstance(target_channel, discord.TextChannel):
         await interaction.response.send_message(
             "This command can only lock text channels.",
-            ephemeral=True,
         )
         return
 
     if interaction.guild is None:
         await interaction.response.send_message(
             "This command can only be used in a server.",
-            ephemeral=True,
         )
         return
 
@@ -434,13 +382,11 @@ async def lock_channel(
     except discord.Forbidden:
         await interaction.response.send_message(
             "I don't have permission to edit channel permissions.",
-            ephemeral=True,
         )
         return
     except discord.HTTPException:
         await interaction.response.send_message(
             "I couldn't update the channel permissions due to a Discord API error.",
-            ephemeral=True,
         )
         return
 
@@ -459,18 +405,16 @@ async def lock_channel(
 
 @lock_channel.error
 async def lock_channel_error(
-    interaction: discord.Interaction, error: app_commands.AppCommandError
+        interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
     if isinstance(error, app_commands.MissingPermissions):
         if interaction.response.is_done():
             await interaction.followup.send(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
 
 
@@ -485,22 +429,20 @@ async def lock_channel_error(
     role="Role to unlock.",
 )
 async def unlock_channel(
-    interaction: discord.Interaction,
-    role: discord.Role,
-    channel: discord.TextChannel | None = None,
+        interaction: discord.Interaction,
+        role: discord.Role,
+        channel: discord.TextChannel | None = None,
 ):
     target_channel = channel or interaction.channel
     if not isinstance(target_channel, discord.TextChannel):
         await interaction.response.send_message(
             "This command can only unlock text channels.",
-            ephemeral=True,
         )
         return
 
     if interaction.guild is None:
         await interaction.response.send_message(
             "This command can only be used in a server.",
-            ephemeral=True,
         )
         return
 
@@ -517,13 +459,11 @@ async def unlock_channel(
     except discord.Forbidden:
         await interaction.response.send_message(
             "I don't have permission to edit channel permissions.",
-            ephemeral=True,
         )
         return
     except discord.HTTPException:
         await interaction.response.send_message(
             "I couldn't update the channel permissions due to a Discord API error.",
-            ephemeral=True,
         )
         return
 
@@ -542,18 +482,16 @@ async def unlock_channel(
 
 @unlock_channel.error
 async def unlock_channel_error(
-    interaction: discord.Interaction, error: app_commands.AppCommandError
+        interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
     if isinstance(error, app_commands.MissingPermissions):
         if interaction.response.is_done():
             await interaction.followup.send(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
 
 
@@ -568,20 +506,22 @@ async def unlock_channel_error(
     dont_want_channel="A channel that shouldn't be touched.",
 )
 async def lockdown(
-    interaction: discord.Interaction,
-    role: discord.Role,
-    dont_want_channel: discord.TextChannel | None = None,
+        interaction: discord.Interaction,
+        role: discord.Role,
+        dont_want_channel: discord.TextChannel | None = None,
 ):
     if interaction.guild is None:
         await interaction.response.send_message(
             "This command can only be used in a server.",
-            ephemeral=True,
         )
         return
 
-    await interaction.response.send_message(
-        "The request to do that had processed"
+    embed = discord.Embed(
+        title="Lockdown Initiated",
+        description="The request to do that had processed",
+        color=discord.Color.blue(),
     )
+    await interaction.response.send_message(embed=embed)
 
     locked_channels = 0
     failed_channels = 0
@@ -626,19 +566,19 @@ async def lockdown(
     embed.set_footer(text=f"Action by {interaction.user}")
 
     await interaction.followup.send(embed=embed)
+
+
 async def lockdown_error(
-    interaction: discord.Interaction, error: app_commands.AppCommandError
+        interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
     if isinstance(error, app_commands.MissingPermissions):
         if interaction.response.is_done():
             await interaction.followup.send(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
 
 
@@ -653,20 +593,22 @@ async def lockdown_error(
     dont_want_channel="A channel that shouldn't be touched.",
 )
 async def remove_lockdown(
-    interaction: discord.Interaction,
-    role: discord.Role,
-    dont_want_channel: discord.TextChannel | None = None,
+        interaction: discord.Interaction,
+        role: discord.Role,
+        dont_want_channel: discord.TextChannel | None = None,
 ):
     if interaction.guild is None:
         await interaction.response.send_message(
             "This command can only be used in a server.",
-            ephemeral=True,
         )
         return
 
-    await interaction.response.send_message(
-        "The request to do that had processed"
+    embed = discord.Embed(
+        title="Remove Lockdown Initiated",
+        description="The request to do that had processed",
+        color=discord.Color.blue(),
     )
+    await interaction.response.send_message(embed=embed)
 
     unlocked_channels = 0
     failed_channels = 0
@@ -713,19 +655,19 @@ async def remove_lockdown(
     embed.set_footer(text=f"Action by {interaction.user}")
 
     await interaction.followup.send(embed=embed)
+
+
 async def remove_lockdown_error(
-    interaction: discord.Interaction, error: app_commands.AppCommandError
+        interaction: discord.Interaction, error: app_commands.AppCommandError
 ):
     if isinstance(error, app_commands.MissingPermissions):
         if interaction.response.is_done():
             await interaction.followup.send(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
                 "You need administrator permission to use this command.",
-                ephemeral=True,
             )
 
 
