@@ -2,19 +2,25 @@
 #
 # SPDX-License-Identifier: 	GPL-3.0-or-later
 
-#imort fastapi
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-import threading #for running the main file alongside with this
-from main import start_bot #a function which runs the bot
 
-app = FastAPI()
+from main import start_bot
 
-# Start the Discord bot in a separate thread
-@app.on_event("startup")
-async def startup_event():
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     threading.Thread(target=start_bot, daemon=True).start()
+    yield
 
-@app.get("/") #if user visited the root
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
 async def root():
-    return {"message": "Hello World, I'm Proggy Central's backend sever. I'm the helper, which keeps Proggy Central bot active all  the time without any issue or pain!"}
-
+    return {
+        "message": "Hello World, I'm Proggy Central's backend sever. I'm the helper, which keeps Proggy Central bot active all  the time without any issue or pain!"
+    }
